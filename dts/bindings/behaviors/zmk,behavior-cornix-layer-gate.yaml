@@ -1,0 +1,41 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Cornix Layer Gate behavior.
+
+  Activates its target layer the instant the key goes down (no tap-term
+  delay before the layer becomes usable), tracks whether any other
+  physical key was pressed while held, and on release sends a single tap
+  keycode only if the key was released quickly (before tap-term-ms) and
+  no other key was pressed while it was held.
+
+compatible: "zmk,behavior-cornix-layer-gate"
+
+include: zero_param.yaml
+
+properties:
+  id:
+    type: int
+    required: true
+    description: >
+      Index (0 or 1) identifying this gate instance in the shared
+      lower/raise runtime state table, used to look up the "other" gate
+      for chord (ADJUST) detection. Independent of devicetree node order.
+  layer:
+    type: int
+    required: true
+    description: Layer id to activate while this key is held.
+  tap-keycode:
+    type: int
+    required: true
+    description: >
+      Encoded keycode (see dt-bindings/zmk/keys.h) sent exactly once on
+      release, only if the press qualified as a standalone tap.
+  tap-term-ms:
+    type: int
+    default: 350
+    description: >
+      Maximum hold duration, in milliseconds, for a release to still
+      qualify as a standalone tap. Not used to gate layer activation,
+      which is always immediate.

@@ -5,81 +5,108 @@
  */
 
 /*
- * 2026-05-23: Replaced upstream's complex 8-layer keymap (custom homerow
- * mods, combos, conditional_layers, Win / Adjust / Navi / NumPad / Debug
- * layers) with a slim 4-layer default matching the day-to-day ZMK Studio
- * working state. Intent: a fresh flash or settings reset (cornix_reset.uf2)
- * should land close to actual usage, not the upstream author's untouched
- * setup.
+ * 2026-09-12: Migrated from the RMK v1.12 / Vial keymap the user was
+ * actually running on hardware (reference/20260905_cornix.vil, 4 real
+ * layers: Base / LOWER / RAISE / ADJUST; Layers 4-9 in the .vil are
+ * KC_NO-only with no reachable layer switch, combo, tap-dance, macro or
+ * user key pointing at them, so they are intentionally not ported — see
+ * MIGRATION.md). Layer 0-3 keys are carried over 1:1 by physical position.
  *
- * 2026-06-02: Re-synced the per-layer `bindings` to the live ZMK Studio
- * working state, captured via the keymap export from zmk-studio-tweaks
- * (Cornix-2026-06-02T14-47-56.keymap). Notable changes vs the 2026-05-23
- * default: Bluetooth keys consolidated onto the Symbols layer only (removed
- * from Number/Functions), the Base-layer right-pinky `!`/`?` dropped to
- * &none, and several JIS symbol slots on Number/Symbols remapped. After a
- * reset, a fresh flash now lands on this exact working state.
+ * LOWER/RAISE replace the RMK Tap Dance (TD(0)/TD(1), term 175ms,
+ * tap=LANG2/LANG1, hold=MO(1)/MO(2)) and the TD(0)+TD(1) combo (->MO(3))
+ * with the dedicated `cornix_layer_gate` out-of-tree behavior
+ * (dts/behaviors/cornix_layer_gate.dtsi, src/behaviors/behavior_cornix_layer_gate.c):
+ * the target layer activates the instant the key goes down (not after a
+ * tap-term wait), and a LANG1/LANG2 tap is only sent on release if no
+ * other physical key was pressed while held and the hold was under the
+ * new 350ms tap-term. ADJUST (ex-MO(3)) is Layer 3, entered via a
+ * standard `conditional_layers` tri-layer (if-layers = <1 2>) below,
+ * matching upstream ZMK convention rather than a hand-rolled layer stack.
+ *
+ * USER00/USER01/USER02 on the .vil's Layer 3 were the RMK/Vial Bluetooth
+ * profile-slot selection keys; they are ported to `&bt BT_SEL 0/1/2`.
+ *
+ * Positions unchanged from Base (LOWER/RAISE/ADJUST held modifiers,
+ * left/right inner-thumb mouse-click/mute keys) are expressed as &trans
+ * rather than repeating the same &kp, which is behavior-identical to how
+ * the .vil re-lists them per layer.
  *
  * ZMK Studio interaction:
  *   - Studio overrides per-layer `bindings` via NVS at runtime; the
  *     `bindings` here are the post-reset / pre-Studio-edit defaults.
- *   - Studio does NOT cover `sensor-bindings` (encoders), combos,
- *     behaviors, conditional_layers or macros — those keep being
- *     controlled by this file at runtime regardless of Studio state.
- *     The Studio export omits sensor-bindings, so they are preserved
- *     here by hand.
+ *   - Studio does NOT cover `sensor-bindings` (encoders), conditional_layers,
+ *     or behaviors - those keep being controlled by this file at runtime
+ *     regardless of Studio state.
  */
 
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <behaviors/cornix_layer_gate.dtsi>
 
 / {
+    behaviors {
+        scroll_encoder: scroll_encoder {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc SCRL_UP>, <&msc SCRL_DOWN>;
+        };
+    };
+
+    conditional_layers {
+        compatible = "zmk,conditional-layers";
+        tri_layer {
+            if-layers = <1 2>;
+            then-layer = <3>;
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
         Base {
             display-name = "Base";
             bindings = <
-&kp PRSC   &kp Q     &kp W     &kp E      &kp R        &kp T                                                &kp Y            &kp U     &kp I      &kp O     &kp P     &kp MINUS
-&kp CAPS   &kp A     &kp S     &kp D      &kp F        &kp G                                                &kp H            &kp J     &kp K      &kp L     &kp RET   &none
-&kp LSHFT  &kp Z     &kp X     &kp C      &kp V        &kp B            &none            &none              &kp N            &kp M     &kp COMMA  &kp DOT   &kp UP    &none
-&kp LCTL   &kp LGUI  &kp LALT  &lt 1 TAB  &lt 2 SPACE  &mt LSHFT LANG2                                      &mt RSHFT LANG1  &kp BSPC  &mo 2      &kp LEFT  &kp DOWN  &kp RIGHT
+&kp TAB &kp Q &kp W &kp E &kp R &kp T   &kp Y &kp U &kp I &kp O &kp P &kp MINUS
+&kp LCTRL &kp A &kp S &kp D &kp F &kp G   &kp H &kp J &kp K &kp L &kp SEMI &kp SQT
+&kp LSHFT &kp Z &kp X &kp C &kp V &kp B   &mkp MCLK &kp C_MUTE   &kp N &kp M &kp COMMA &kp DOT &kp FSLH &kp RSHFT
+&kp LCTRL &kp LGUI &kp LALT &kp LGUI &lower_gate &kp SPACE   &kp RET &raise_gate &kp RALT &kp RALT &kp RGUI &kp K_APP
             >;
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+            sensor-bindings = <&scroll_encoder &inc_dec_kp C_VOL_UP C_VOL_DN>;
         };
 
-        Symbols {
-            display-name = "Symbols";
+        LOWER {
+            display-name = "LOWER";
             bindings = <
-&bt BT_CLR    &kp LS(N2)  &kp LS(N7)  &none       &none   &none                          &kp LS(COMMA)  &kp LS(DOT)  &kp RBKT      &kp NUHS      &kp LS(N5)  &none
-&bt BT_SEL 0  &kp LBKT    &kp LS(N3)  &kp LS(N4)  &none   &none                          &none          &none        &kp LS(RBKT)  &kp LS(NUHS)  &none       &none
-&bt BT_SEL 1  &none       &none       &none       &none   &none      &trans   &trans    &none          &none        &kp LS(N1)    &kp LS(FSLH)  &none       &none
-&bt BT_SEL 2  &none       &none       &none       &trans  &trans                         &trans         &trans       &none         &none         &none       &none
+&kp ESC &kp N1 &kp N2 &kp N3 &kp N4 &kp N5   &kp N6 &kp N7 &kp N8 &kp N9 &kp N0 &kp BSPC
+&trans &none &none &none &none &none   &kp LEFT &kp DOWN &kp UP &kp RIGHT &none &none
+&trans &none &none &none &none &none   &trans &trans   &none &none &none &none &none &trans
+&trans &trans &trans &trans &lower_gate &trans   &trans &trans &trans &trans &trans &trans
             >;
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+            sensor-bindings = <&scroll_encoder &inc_dec_kp C_VOL_UP C_VOL_DN>;
         };
 
-        Number {
-            display-name = "Number";
+        RAISE {
+            display-name = "RAISE";
             bindings = <
-&none  &kp LS(SEMI)  &kp N7  &kp N8  &kp N9  &kp LS(SQT)                  &none      &none     &kp UP    &none      &none         &none
-&none  &kp MINUS     &kp N4  &kp N5  &kp N6  &kp FSLH                     &none      &kp LEFT  &kp DOWN  &kp RIGHT  &kp LS(MINUS)  &none
-&none  &kp N0        &kp N1  &kp N2  &kp N3  &kp DOT      &none   &none   &none      &none     &none     &none      &none         &none
-&none  &none         &none   &none   &none   &none                        &kp RSHFT  &mo 3     &none     &none      &none         &none
+&kp LS(GRAVE) &kp LS(N1) &kp LS(N2) &kp LS(N3) &kp LS(N4) &kp LS(N5)   &kp LS(N6) &kp LS(N7) &kp LS(N8) &kp LS(N9) &kp LS(N0) &kp LS(MINUS)
+&trans &none &none &none &none &none   &kp KP_PLUS &kp KP_EQUAL &kp LS(LBKT) &kp LS(RBKT) &kp LS(SEMI) &kp LS(SQT)
+&trans &none &none &none &none &none   &trans &trans   &kp LS(BSLH) &kp GRAVE &kp LBKT &kp RBKT &kp LS(FSLH) &kp BSLH
+&trans &trans &trans &trans &trans &trans   &trans &raise_gate &trans &trans &trans &trans
             >;
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+            sensor-bindings = <&scroll_encoder &inc_dec_kp C_VOL_UP C_VOL_DN>;
         };
 
-        Functions {
-            display-name = "Functions";
+        ADJUST {
+            display-name = "ADJUST";
             bindings = <
-&none  &none  &kp F7  &kp F8  &kp F9  &kp F12                  &none  &none  &none  &none  &none  &none
-&none  &none  &kp F4  &kp F5  &kp F6  &kp F11                  &none  &none  &none  &none  &none  &none
-&none  &none  &kp F1  &kp F2  &kp F3  &kp F10  &none  &none    &none  &none  &none  &none  &none  &none
-&none  &none  &none   &none   &none   &none                    &none  &none  &none  &none  &none  &none
+&none &none &none &none &none &none   &none &none &none &none &none &none
+&bt BT_SEL 0 &none &none &none &none &none   &none &none &none &none &none &none
+&bt BT_SEL 1 &none &none &none &none &none   &trans &trans   &none &none &none &none &none &none
+&bt BT_SEL 2 &none &none &none &trans &none   &none &trans &none &none &none &none
             >;
-            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+            sensor-bindings = <&scroll_encoder &inc_dec_kp C_VOL_UP C_VOL_DN>;
         };
     };
 };

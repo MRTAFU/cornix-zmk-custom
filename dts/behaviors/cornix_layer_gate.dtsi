@@ -1,0 +1,33 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <dt-bindings/zmk/keys.h>
+
+/ {
+    behaviors {
+        /omit-if-no-ref/
+        lower_gate: lower_gate {
+            compatible = "zmk,behavior-cornix-layer-gate";
+            #binding-cells = <0>;
+            id = <0>;
+            layer = <1>;
+            tap-keycode = <LANG2>;
+            tap-term-ms = <350>;
+            display-name = "LOWER Gate";
+        };
+
+        /omit-if-no-ref/
+        raise_gate: raise_gate {
+            compatible = "zmk,behavior-cornix-layer-gate";
+            #binding-cells = <0>;
+            id = <1>;
+            layer = <2>;
+            tap-keycode = <LANG1>;
+            tap-term-ms = <350>;
+            display-name = "RAISE Gate";
+        };
+    };
+};

@@ -24,7 +24,8 @@
  * matching upstream ZMK convention rather than a hand-rolled layer stack.
  *
  * USER00/USER01/USER02 on the .vil's Layer 3 were the RMK/Vial Bluetooth
- * profile-slot selection keys; they are ported to `&bt BT_SEL 0/1/2`.
+ * profile-slot selection keys; they are ported to `&bt_prof 0/1/2`, which
+ * also carries RMK's hold-5s-to-unpair gesture (see the behavior below).
  *
  * Positions unchanged from Base (LOWER/RAISE/ADJUST held modifiers,
  * left/right inner-thumb mouse-click/mute keys) are expressed as &trans
@@ -51,6 +52,58 @@
             compatible = "zmk,behavior-sensor-rotate";
             #sensor-binding-cells = <0>;
             bindings = <&msc SCRL_UP>, <&msc SCRL_DOWN>;
+        };
+
+        /*
+         * BT profile key: tap to switch, hold 5 s to unpair.
+         *
+         * This reproduces RMK's gesture (hold the profile key for 5 s to
+         * drop that profile's bond and start advertising for a new host).
+         * It matters because a bond lives on the keyboard as well as on the
+         * host: forgetting the keyboard on the Mac does not free the slot,
+         * ZMK then rejects the new pairing attempt
+         * (BT_SECURITY_ERR_PAIR_NOT_ALLOWED in app/src/ble.c) and only
+         * advertises to the old peer, so the profile looks permanently
+         * stuck. Without a BT_CLR binding the only way out was reflashing
+         * settings_reset, which also wipes the keymap.
+         *
+         * BT_CLR acts on whichever profile is *active*, so the hold side
+         * has to select the target profile first — hence the macro pair
+         * rather than a bare <&bt BT_CLR>.
+         */
+        bt_sel_m: bt_sel_m {
+            compatible = "zmk,behavior-macro-one-param";
+            #binding-cells = <1>;
+            display-name = "BT Select";
+            bindings = <&macro_param_1to2 &bt BT_SEL MACRO_PLACEHOLDER>;
+        };
+
+        bt_clr_m: bt_clr_m {
+            compatible = "zmk,behavior-macro-one-param";
+            #binding-cells = <1>;
+            display-name = "BT Select + Clear";
+            bindings
+                = <&macro_param_1to2 &bt BT_SEL MACRO_PLACEHOLDER>
+                , <&bt BT_CLR>;
+        };
+
+        /*
+         * tap-preferred: only the 5 s timer resolves to hold. Pressing
+         * other keys while this is held cannot trigger the unpair
+         * (decide_tap_preferred() in behavior_hold_tap.c handles just
+         * HT_KEY_UP / HT_TIMER_EVENT / HT_QUICK_TAP), which is what we
+         * want for a destructive action.
+         *
+         * Invoked as `&bt_prof N N` — the first N goes to the hold
+         * binding, the second to the tap binding.
+         */
+        bt_prof: bt_prof {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            display-name = "BT Profile";
+            flavor = "tap-preferred";
+            tapping-term-ms = <5000>;
+            bindings = <&bt_clr_m>, <&bt_sel_m>;
         };
     };
 
@@ -102,9 +155,9 @@
             display-name = "ADJUST";
             bindings = <
 &none &none &none &none &none &none   &none &none &none &none &none &none
-&bt BT_SEL 0 &none &none &none &none &none   &none &none &none &none &none &none
-&bt BT_SEL 1 &none &none &none &none &none   &trans &trans   &none &none &none &none &none &none
-&bt BT_SEL 2 &none &none &none &trans &none   &none &trans &none &none &none &none
+&bt_prof 0 0 &none &none &none &none &none   &none &none &none &none &none &none
+&bt_prof 1 1 &none &none &none &none &none   &trans &trans   &none &none &none &none &none &none
+&bt_prof 2 2 &none &none &none &trans &none   &none &trans &none &none &none &none
             >;
             sensor-bindings = <&scroll_encoder &inc_dec_kp C_VOL_UP C_VOL_DN>;
         };

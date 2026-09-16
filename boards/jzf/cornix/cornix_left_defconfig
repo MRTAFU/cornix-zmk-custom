@@ -36,6 +36,33 @@ CONFIG_ZMK_SPLIT_ROLE_CENTRAL=y
 CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 # 更改键盘默认显示名称
 
+# Run BLE on 1M PHY instead of 2M — see the matching block in
+# cornix_right_defconfig for the full reasoning. Both halves need it: the
+# 2M negotiation is symmetric, so it also has to be off on the side that
+# initiates it. This also drops the Left<->host link to 1M, which is the
+# conservative choice for a keyboard.
+CONFIG_BT_CTLR_PHY_2M=n
+
+# Parameters for the Left<->Right split link. The central picks these for
+# both halves (split/bluetooth/central.c passes them to bt_conn_le_create);
+# the peripheral's own BT_PERIPHERAL_PREF_* are ignored.
+#
+# Supervision timeout, in units of 10 ms. ZMK's default of 400 = 4 s is
+# what sets the length of the stuck-key burst: when the link dies mid-press
+# the central only learns about it — and only then force-releases the held
+# positions in release_peripheral_slot() — after this timeout expires, so
+# the host sees the key held and auto-repeats for the whole window. 100 =
+# 1 s cuts that from ~40 repeated characters to a few. The trade-off is
+# less tolerance for brief RF dropouts, i.e. more (but far shorter)
+# reconnects. Floor is (1 + latency) * interval * 2 = 90 ms here.
+CONFIG_ZMK_SPLIT_BLE_PREF_TIMEOUT=100
+
+# Slave latency, in connection events. Default 30 lets the peripheral skip
+# ~232 ms of conn events at the 7.5 ms interval. 5 caps the worst-case skip
+# near ~45 ms at some cost in peripheral idle current. (This is the knob
+# #7 was trying to reach via the peripheral side, where it had no effect.)
+CONFIG_ZMK_SPLIT_BLE_PREF_LATENCY=5
+
 # 电池电量报告间隔时间单位是秒
 CONFIG_ZMK_BATTERY_REPORT_INTERVAL=60
 

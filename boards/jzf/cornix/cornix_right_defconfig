@@ -39,14 +39,33 @@ CONFIG_INPUT=y
 CONFIG_EC11=y
 CONFIG_EC11_TRIGGER_GLOBAL_THREAD=y
 
-# Lower the slave latency the split peripheral asks the central to allow.
-# ZMK's default (app/Kconfig) is BT_PERIPHERAL_PREF_LATENCY=30 with a
-# preferred conn interval of 7.5–15 ms. That lets the peripheral skip up
-# to ~465 ms of conn events for power savings, and produces the "right
-# key arrives after a quickly-following left key" reorder we see at high
-# typing speed (#7). 5 caps the worst-case skip near ~90 ms while still
-# leaving meaningful idle-time radio off; revisit if user testing wants
-# 0 (lowest latency, ~+25% half-current) or 10 (closer to default).
-CONFIG_BT_PERIPHERAL_PREF_LATENCY=5
+# NOTE: BT_PERIPHERAL_PREF_* does nothing on the split link, so the
+# latency=5 that used to live here (refs #7) never took effect. ZMK sets
+# BT_GAP_AUTO_UPDATE_CONN_PARAMS=n for split peripherals
+# (app/src/split/bluetooth/Kconfig, "Allow central to specify connection
+# parameters."), and Zephyr only sends a peripheral-initiated param update
+# from inside that guard (host/conn.c). The central never reads our PPCP
+# either. The parameters that actually apply are chosen by the central in
+# split/bluetooth/central.c from CONFIG_ZMK_SPLIT_BLE_PREF_* — see
+# cornix_left_defconfig.
+# CONFIG_BT_PERIPHERAL_PREF_LATENCY=5
+
+# Match the central's TX power. Left runs at +8 dBm
+# (cornix_left_defconfig) while this side had no TX setting at all and so
+# fell back to Zephyr's `default BT_CTLR_TX_PWR_0` = 0 dBm. That put the
+# whole 8 dB deficit on the Right->Left direction, which is exactly the
+# direction every key event travels.
+CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
+
+# Run the split link on 1M PHY instead of 2M. ZMK_SPLIT_BLE selects
+# BT_USER_PHY_UPDATE + BT_AUTO_PHY_UPDATE unconditionally, so Zephyr
+# auto-negotiates symmetric 2M on connect
+# (host/conn.c perform_auto_initiated_procedures) whenever the controller
+# advertises the feature. 2M trades several dB of link budget for
+# throughput a 6-byte position bitmap does not need. This is the same
+# thing CONFIG_ZMK_BLE_EXPERIMENTAL_CONN does — its only effect today is
+# `BT_CTLR_PHY_2M default n` — spelled out explicitly so it cannot pick up
+# extra meaning as upstream main moves.
+CONFIG_BT_CTLR_PHY_2M=n
 
 # vim: set ft=kconfig:

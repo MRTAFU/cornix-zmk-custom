@@ -11,9 +11,15 @@ manifest:
     - name: janpfischer
       url-base: https://github.com/janpfischer
   projects:
+    # Pinned rather than tracking `main`. With `revision: main` the firmware
+    # silently changes underneath every CI run, which makes it impossible to
+    # say whether a behaviour change came from our config or from upstream —
+    # exactly the problem hit while chasing the split-link stuck-key issue.
+    # Bump this deliberately (and note what moved) instead of drifting.
+    # 9ebbeff = zmkfirmware/zmk main as of 2026-09-14.
     - name: zmk
       remote: zmkfirmware
-      revision: main
+      revision: 9ebbeff0a8b69a42f14aec022cdf16c7a107b9e0
       clone-depth: 1
       import:
         file: app/west.yml

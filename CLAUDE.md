@@ -57,6 +57,7 @@ The Justfile expects `ZMK_LIB_PREFIX` (defaults to `zmk_exts`) pointing to the p
 - `config/west.yml` — manifest pulling `zmk@main`, `urob/zmk-helpers@main`, `englmaxi/zmk-dongle-display@main`. When a build breaks after upstream churn, suspect this file.
 - `zephyr/module.yml` — what makes this repo loadable as a Zephyr module.
 - `.github/workflows/build.yml` — thin wrapper delegating to ZMK's shared `build-user-config.yml`. Workflow only triggers on paths `boards/*` and `config/*`.
+- `docs/ble-split-stability.md` — working notes on the split-BLE stuck-key problem (right half drops mid-keystroke, host auto-repeats the held key). Read this before touching TX power, PHY, connection parameters, or anything in `split/bluetooth/`: it records which hypotheses were already ruled out from source, which config settings turned out to be dead, and what to measure next. Also explains why `config/west.yml` pins zmk to a SHA rather than tracking `main`.
 
 ## Things to verify before recommending action
 

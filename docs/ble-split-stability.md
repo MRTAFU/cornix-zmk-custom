@@ -102,6 +102,27 @@ Ruled out from source, so nobody has to re-check them:
   right half's firmware. The key that stuck was `&kp L`, a plain keypress that
   never goes near it.
 
+## Why it used to get worse on battery
+
+There was an older, similar-looking fault that showed up at low battery, which
+is why battery was kept on the suspect list but not treated as the cause — the
+current one happened with both halves fully charged.
+
+The link-budget story reconciles both. Battery level was never a cause on its
+own; it was spending the last few dB of a budget that was already too thin
+(right half at 0 dBm, 2M PHY). With headroom restored, the same battery level
+no longer pushes it over the edge.
+
+Supporting observation, 2026-09-19: left at 66 %, both halves off the charger,
+right somewhat higher — squarely in the range that "would have been playing up
+by now", and it was completely clean. One data point, on a coarse reading, from
+the wrong half (the central reports its own level), so treat it as consistent
+with the explanation rather than proof of it. But it does mean a low-battery
+recurrence is now interesting evidence rather than an expected nuisance: if it
+comes back only when the battery is low, the budget is still marginal and the
+next lever is the connection interval or the notify-retry fix, not more TX
+power.
+
 ## What was wrong in the config
 
 Three real findings:

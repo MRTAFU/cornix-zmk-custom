@@ -195,18 +195,20 @@ destructive.
 - `31aa034` was flashed and appeared to take (the macOS "could not copy /
   disk ejected" dialog during UF2 drag-and-drop is normal — the board reboots
   the instant the last block lands).
-- `8b73e66` had not been verified on hardware at the time of writing. **The
-  open question is whether a one-param macro works as a hold-tap binding in
-  this ZMK revision.** It is the documented pattern, but it was never built.
-  If CI is red, that is the first suspect; fall back to a small out-of-tree
-  behavior in the style of `cornix_layer_gate`.
-- Effectiveness of the BLE changes is unmeasured — needs a week or so of
-  normal use.
+- `8b73e66` **builds and works on hardware.** So a one-param macro *is* usable
+  as a hold-tap binding in this ZMK revision — that was the open question, and
+  it is settled. No out-of-tree behavior needed.
+- The BLE changes look good in early use: no dropouts or key-repeat bursts
+  reported as of 2026-09-19. **This is only a day or two of use, against a
+  fault that was intermittent to begin with**, so it is encouraging rather
+  than conclusive. Revisit after a few weeks before calling it fixed.
 
-Because TX power, PHY and connection parameters all moved in one commit, a
-successful outcome will not say *which* of them mattered. That was a
-deliberate trade (fewer flash-and-wait cycles) and is fine if it works; if the
-problem persists, split them apart before drawing conclusions.
+Because TX power, PHY and connection parameters all moved in one commit, the
+good early result does not say *which* of them mattered — and it never will,
+unless someone deliberately reverts them one at a time. That was a conscious
+trade (fewer flash-and-wait cycles on an intermittent fault) and it looks like
+it paid off. Worth remembering if a future change makes the problem come back:
+there are three knobs in play here, not one.
 
 ## If it is still happening
 
